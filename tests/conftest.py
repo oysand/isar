@@ -7,6 +7,7 @@ from isar.config import config
 from isar.config.keyvault.keyvault_service import Keyvault
 from isar.models.communication.queues.queues import Queues
 from isar.modules import (
+    APIModule,
     CoordinateModule,
     QueuesModule,
     ReaderModule,
@@ -40,6 +41,7 @@ from tests.test_utilities.mock_interface.mock_telemetry_interface import MockTel
 def injector():
     return Injector(
         [
+            APIModule,
             TelemetryModule,
             QueuesModule,
             StateMachineModule,

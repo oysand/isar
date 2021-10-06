@@ -1,13 +1,10 @@
 import logging
-from dataclasses import asdict
-from http import HTTPStatus
+from typing import Optional
 
-from flask import request
-from flask_restx import Namespace, Resource, fields
+from fastapi import Depends, Query
+from fastapi_utils.cbv import cbv
 from injector import inject
 
-from isar.config import config
-from isar.models.communication.messages import StartMessage
 from isar.models.mission import Mission
 from isar.services.utilities.scheduling_utilities import SchedulingUtilities
 from models.geometry.frame import Frame
@@ -16,76 +13,54 @@ from models.geometry.pose import Pose
 from models.geometry.position import Position
 from models.planning.step import DriveToPose
 
-api = Namespace(
-    config.get("api_namespaces", "eqrobot_schedule_namespace"),
-    description="Scheduling operations for the robot",
-)
 
-start_response = api.model(
-    "mission_started", {"mission_started": fields.Boolean, "message": fields.String}
-)
-
-
-@api.route(
-    "/drive-to",
-    doc={
-        "description": "Drives to specified position.",
-        "params": {
-            "x": {"description": "The target x coordinate", "type": "float"},
-            "y": {"description": "The target y coordinate", "type": "float"},
-            "z": {"description": "The target z coordinate", "type": "float"},
-            "orientation": {
-                "description": "The target orientation as a quaternion (x, y, z, w)",
-                "type": "list",
-            },
-        },
-    },
-)
-class DriveTo(Resource):
+class DriveTo:
     @inject
     def __init__(self, scheduling_utilities: SchedulingUtilities, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger("api")
         self.scheduling_utilities = scheduling_utilities
 
-    @api.response(HTTPStatus.OK, "Success", start_response)
-    @api.response(HTTPStatus.REQUEST_TIMEOUT, "Request Timeout", start_response)
-    @api.response(HTTPStatus.CONFLICT, "Conflict", start_response)
-    @api.response(HTTPStatus.BAD_REQUEST, "Bad Request")
-    @api.response(HTTPStatus.NOT_FOUND, "Not Found")
-    def get(self):
 
-        try:
-            x = float(request.args.get("x"))
-            y = float(request.args.get("y"))
-            z = float(request.args.get("z"))
-            q: list = [
-                float(item) for item in request.args.get("orientation").split(",")
-            ]
-        except Exception as e:
-            message = asdict(
-                StartMessage(
-                    message="Could not read target pose parameters",
-                    started=False,
-                )
+    def get(self,
+            x: Optional[float] = Query(
+            None,
+            alias="x-value",
+            title="x-position",
+            description="The target x coordinate",
+            ),
+        y: Optional[float] = Query(
+            None, 
+            alias="y-value",
+            description="The target y coordinate",
+            ),
+        z: Optional[float] = Query(
+            None, 
+            alias="z-value",
+            description="The target z coordinate",
+            ),
+        q: Optional[list] = Query(
+            [0,0,0,1],
+            alias="quaternion",
+            description="Target orientation as a quaternion (x,y,z,w)",
             )
-            self.logger.error(f"{message} {e}")
-            return message, HTTPStatus.BAD_REQUEST
+        ):
 
         ready, response = self.scheduling_utilities.ready_to_start_mission()
         if not ready:
             return response
+        
+
 
         position: Position = Position(x=x, y=y, z=z, frame=Frame.Robot)
-        orientation: Orientation = Orientation(
-            x=q[0], y=q[1], z=q[2], w=q[3], frame=Frame.Robot
-        )
-        pose: Pose = Pose(position=position, orientation=orientation, frame=Frame.Robot)
-
+        orientation: Orientation = Orientation(x=q[0],y=q[1],z=q[2],w=q[3], frame=Frame.Robot)
+        pose: Pose = Pose(position=position, orientation=orientation, frame = Frame.Robot)
+        
         step: DriveToPose = DriveToPose(pose=pose)
         mission: Mission = Mission([step])
 
         response = self.scheduling_utilities.start_mission(mission=mission)
-
         self.logger.info(response)
         return response
+
+

@@ -1,3 +1,6 @@
+uvicorn
+fastapi
+fastapi_utils
 Flask < 2.0.0
 Flask-Injector
 PyJWT

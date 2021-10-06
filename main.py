@@ -1,9 +1,17 @@
+import uvicorn
+
 from isar import create_app
+from isar.config import config
 
 if __name__ == "__main__":
+
     app = create_app()
 
-    host = app.config["HOST"]
-    port = app.config["PORT"]
+   
+    hostAPI = config.get("environment", "flask_run_host")
+    portAPI = config.get("environment", "flask_run_port")
+    
 
-    app.run(host, port, use_reloader=False)
+
+    uvicorn.run(app,port=3000,host='localhost')
+

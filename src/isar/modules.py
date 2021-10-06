@@ -4,6 +4,9 @@ from types import ModuleType
 
 from injector import Module, provider, singleton
 
+from isar.apis.schedule.drive_to import DriveTo
+from isar.apis.schedule.start_mission import StartMission
+from isar.apis.schedule.stop_mission import StopMission
 from isar.config import config
 from isar.config.keyvault.keyvault_service import Keyvault
 from isar.models.communication.queues.queues import Queues
@@ -28,6 +31,28 @@ from robot_interfaces.robot_interface import RobotInterface
 from robot_interfaces.robot_scheduler_interface import RobotSchedulerInterface
 from robot_interfaces.robot_storage_interface import RobotStorageInterface
 from robot_interfaces.robot_telemetry_interface import RobotTelemetryInterface
+
+
+class APIModule(Module):
+    @provider
+    @singleton
+    def provide_drive_to(self, scheduling_utilities: SchedulingUtilities) -> DriveTo:
+        return DriveTo(scheduling_utilities)
+
+
+    @provider
+    @singleton
+    def provide_start_mission(self,
+        mission_reader: MissionReader,
+        scheduling_utilities: SchedulingUtilities) -> StartMission:
+        return StartMission(mission_reader,scheduling_utilities)
+
+
+    @provider
+    @singleton
+    def provide_stop_mission(self,
+        queues: Queues) -> StopMission:
+        return StopMission(queues)
 
 
 class RobotModule(Module):
