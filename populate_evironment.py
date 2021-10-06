@@ -9,9 +9,9 @@ environment: dict = {
     "AZURE_TENANT_ID": config.get("environment", "azure_tenant_id"),
     "EQROBOT_ENVIRONMENT": config.get("environment", "eqrobot_environment"),
     "ENVIRONMENT": os.getenv("ENVIRONMENT"),
-    "FLASK_ENV": config.get("environment", "flask_env"),
-    "FLASK_RUN_HOST": config.get("environment", "flask_run_host"),
-    "FLASK_RUN_PORT": config.get("environment", "flask_run_port"),
+    "FASTAPI_ENV": config.get("environment", "fastapi_env"),
+    "FASTAPI_RUN_HOST": config.get("environment", "fastapi_run_host"),
+    "FASTAPI_RUN_PORT": config.get("environment", "fastapi_run_port"),
     "JWT_DECODE_AUDIENCE": config.get("environment", "jwt_decode_audience"),
     "AZURE_KEYS_URL": config.get("environment", "azure_keys_url"),
 }

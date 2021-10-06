@@ -7,7 +7,7 @@ Integration and Supervisory control of Autonomous Robots
 The system consists of two threads running in parallel.
 
 1. State machine
-1. Flask API
+1. fastAPI
 
 ### State machine
 
@@ -25,11 +25,11 @@ main states are:
   canceled. The cancel state also functions as a wrap-up state when a mission is finished, prior to the state machine
   returning to idle.
 
-### Flask API
+### fastAPI
 
-The Flask API establishes an interface to the state machine for the user. As the API and state machine are separate
-threads, they communicate through python queues. The main flask extension used for the API design is
-the [flask-restx](https://github.com/python-restx/flask-restx) package.
+The fastAPI establishes an interface to the state machine for the user. As the API and state machine are separate
+threads, they communicate through python queues. FastAPI runs on an ASGI-server, specifically uvicorn. The 
+fastAPI-framework is split into routers where the endpoint operations is defined on.
 
 ## Robot integration
 

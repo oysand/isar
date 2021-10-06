@@ -23,5 +23,6 @@ def create_scheduler_router(injector : Injector) -> APIRouter:
     router.add_api_route('/startechomission', start_echo_mission.get, methods=["GET"])
     router.add_api_route('/stopmission', stop_mission.post, methods=["POST"])
     router.add_api_route('/driveto', drive_to.get, methods=["GET"])
+
     return router
 

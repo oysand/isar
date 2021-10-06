@@ -36,7 +36,6 @@ def create_app(test_config=False):
         "description": "Mission functionality",
     }
 ]
-
     logging.config.dictConfig(yaml.safe_load(open(f"./src/isar/config/logging.conf")))
     logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
         config.get("logging", "azure_storage_logging_level")

@@ -22,8 +22,9 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
-        "Flask",
-        "Flask-Injector",
+        "fastapi"
+        "fastapi_utilis"
+        "uvicorn"
         "PyJWT",
         "PyYAML",
         "Werkzeug",
@@ -33,8 +34,6 @@ setup(
         "azure-storage-blob",
         "cryptography",
         "dacite",
-        "flask-CORS",
-        "flask-restx",
         "injector",
         "numpy",
         "python-dotenv",
