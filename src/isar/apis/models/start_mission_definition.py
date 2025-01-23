@@ -11,12 +11,11 @@ from robot_interface.models.mission.mission import Mission
 from robot_interface.models.mission.task import (
     TASKS,
     RecordAudio,
-    ReturnToHome,
+    TakeGasMeasurement,
     TakeImage,
     TakeThermalImage,
     TakeThermalVideo,
     TakeVideo,
-    TakeGasMeasurement,
     ZoomDescription,
 )
 
@@ -33,6 +32,8 @@ class InspectionTypes(str, Enum):
 class TaskType(str, Enum):
     Inspection = "inspection"
     ReturnToHome = "return_to_home"
+    Localization = "localization"
+    Dock = "dock"
 
 
 class StartMissionInspectionDefinition(BaseModel):
@@ -60,16 +61,12 @@ class StartMissionDefinition(BaseModel):
 
 def to_isar_mission(
     start_mission_definition: StartMissionDefinition,
-    return_pose: Optional[InputPose] = None,
 ) -> Mission:
     isar_tasks: List[TASKS] = []
 
     for task_definition in start_mission_definition.tasks:
         task: TASKS = to_isar_task(task_definition)
         isar_tasks.append(task)
-
-    if return_pose:
-        isar_tasks.append(ReturnToHome(pose=return_pose.to_alitra_pose()))
 
     if not isar_tasks:
         raise MissionPlannerError("Mission does not contain any valid tasks")
@@ -94,6 +91,10 @@ def to_isar_mission(
 def to_isar_task(task_definition: StartMissionTaskDefinition) -> TASKS:
     if task_definition.type == TaskType.Inspection:
         return to_inspection_task(task_definition)
+    elif task_definition.type == TaskType.Localization:
+        return to_localization_task(task_definition)
+    elif task_definition.type == TaskType.Dock:
+        return create_dock_task()
     elif task_definition.type == TaskType.ReturnToHome:
         return create_return_to_home_task(task_definition)
     else:
@@ -217,6 +218,14 @@ def to_inspection_task(task_definition: StartMissionTaskDefinition) -> TASKS:
         raise ValueError(
             f"Inspection type '{inspection_definition.type}' not supported"
         )
+
+
+def to_localization_task(task_definition: StartMissionTaskDefinition) -> Localize:
+    return Localize(localization_pose=task_definition.pose.to_alitra_pose())
+
+
+def create_dock_task() -> DockingProcedure:
+    return DockingProcedure(behavior="dock")
 
 
 def create_return_to_home_task(

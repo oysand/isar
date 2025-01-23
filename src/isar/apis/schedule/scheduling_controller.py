@@ -8,9 +8,9 @@ from injector import inject
 
 from isar.apis.models.models import (
     ControlMissionResponse,
-    TaskResponse,
     InputPose,
     StartMissionResponse,
+    TaskResponse,
 )
 from isar.apis.models.start_mission_definition import (
     StartMissionDefinition,
@@ -21,12 +21,7 @@ from isar.mission_planner.mission_planner_interface import MissionPlannerError
 from isar.services.utilities.scheduling_utilities import SchedulingUtilities
 from isar.state_machine.states_enum import States
 from robot_interface.models.mission.mission import Mission
-from robot_interface.models.mission.task import (
-    TASKS,
-    InspectionTask,
-    MoveArm,
-    ReturnToHome,
-)
+from robot_interface.models.mission.task import TASKS, InspectionTask, MoveArm
 
 
 class SchedulingController:
@@ -51,12 +46,6 @@ class SchedulingController:
             "localization of robot",
             embed=True,
         ),
-        return_pose: Optional[InputPose] = Body(
-            default=None,
-            description="End pose of the mission. The robot return to the specified "
-            "pose after finishing all inspections",
-            embed=True,
-        ),
     ) -> StartMissionResponse:
         self.logger.info(f"Received request to start mission with id {mission_id}")
 
@@ -64,9 +53,6 @@ class SchedulingController:
         self.scheduling_utilities.verify_state_machine_ready_to_receive_mission(state)
 
         mission: Mission = self.scheduling_utilities.get_mission(mission_id)
-        if return_pose:
-            pose: Pose = return_pose.to_alitra_pose()
-            mission.tasks.append(ReturnToHome(pose=pose))
 
         self.scheduling_utilities.verify_robot_capable_of_mission(
             mission=mission, robot_capabilities=robot_settings.CAPABILITIES
@@ -201,6 +187,35 @@ class SchedulingController:
             self.scheduling_utilities.stop_mission()
         )
         return stop_mission_response
+
+    def start_localization_mission(
+        self,
+        localization_pose: InputPose = Body(
+            default=None,
+            embed=True,
+            title="Localization Pose",
+            description="The current position of the robot",
+        ),
+    ) -> StartMissionResponse:
+        self.logger.info("Received request to start new localization mission")
+
+        state: States = self.scheduling_utilities.get_state()
+
+        self.scheduling_utilities.verify_state_machine_ready_to_receive_mission(state)
+
+        pose: Pose = localization_pose.to_alitra_pose()
+        mission: Mission = Mission(
+            name="Localization mission", tasks=[Localize(localization_pose=pose)]
+        )
+
+        self.logger.info(
+            f"Starting localization mission with ISAR Mission ID: '{mission.id}'"
+        )
+        self.scheduling_utilities.start_mission(
+            mission=mission,
+            initial_pose=None,
+        )
+        return self._api_response(mission)
 
     def start_move_arm_mission(
         self,
