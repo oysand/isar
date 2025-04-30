@@ -38,6 +38,7 @@ class RobotStopMissionThread(Thread):
                 return
 
             try:
+                self.logger.info("Stopping robot")
                 self.robot.stop()
             except (RobotActionException, RobotException) as e:
                 self.logger.warning(
