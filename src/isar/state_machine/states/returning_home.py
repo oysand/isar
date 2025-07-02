@@ -43,15 +43,9 @@ class ReturningHome(State):
             return True
         return False
 
-    def _check_and_handle_mission_started_event(self, event: Queue) -> bool:
-        if self.state_machine.mission_ongoing:
-            return False
-
+    def _check_and_handle_mission_started_event(self, event: Queue) -> None:
         if check_for_event(event):
             self.state_machine.mission_ongoing = True
-            return False
-
-        return True
 
     def _check_and_handle_mission_failed_event(self, event: Queue) -> bool:
         mission_failed: Optional[ErrorMessage] = check_for_event(event)
@@ -71,6 +65,9 @@ class ReturningHome(State):
         return False
 
     def _check_and_handle_task_status_failed_event(self, event: Queue) -> bool:
+        if not self.state_machine.mission_ongoing:
+            return False
+
         task_failure: Optional[ErrorMessage] = check_for_event(event)
         if task_failure is not None:
             self.awaiting_task_status = False
@@ -89,6 +86,9 @@ class ReturningHome(State):
         return False
 
     def _check_and_handle_task_status_event(self, event: Queue) -> bool:
+        if not self.state_machine.mission_ongoing:
+            return False
+
         status: Optional[TaskStatus] = check_for_event(event)
         if status is not None:
             self.awaiting_task_status = False
@@ -146,10 +146,9 @@ class ReturningHome(State):
             ):
                 break
 
-            if self._check_and_handle_mission_started_event(
+            self._check_and_handle_mission_started_event(
                 self.events.robot_service_events.mission_started
-            ):
-                continue
+            )
 
             if self._check_and_handle_task_status_event(
                 self.events.robot_service_events.task_status_updated
