@@ -86,6 +86,13 @@ class Robot(object):
             )
             self.robot_task_status_thread.start()
 
+    def _check_and_handle_robot_status_request(self, event: Queue[bool]) -> None:
+        if check_for_event(event):
+            self.robot_status_thread = RobotStatusThread(
+                self.robot, self.signal_thread_quitting, self.shared_state
+            )
+            self.robot_status_thread.start()
+
     def _check_and_handle_stop_mission(self, event: Queue) -> None:
         if check_for_event(event):
             if (
@@ -115,11 +122,6 @@ class Robot(object):
             self.stop_mission_thread.start()
 
     def run(self) -> None:
-        self.robot_status_thread = RobotStatusThread(
-            self.robot, self.signal_thread_quitting, self.shared_state
-        )
-        self.robot_status_thread.start()
-
         while not self.signal_thread_quitting.wait(0):
             self._check_and_handle_start_mission(
                 self.state_machine_events.start_mission
@@ -127,6 +129,10 @@ class Robot(object):
 
             self._check_and_handle_task_status_request(
                 self.state_machine_events.task_status_request
+            )
+
+            self._check_and_handle_robot_status_request(
+                self.state_machine_events.robot_status_request
             )
 
             self._check_and_handle_stop_mission(self.state_machine_events.stop_mission)

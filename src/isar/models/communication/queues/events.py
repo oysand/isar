@@ -38,12 +38,15 @@ class StateMachineEvents:
         self.stop_mission: Queue[bool] = Queue(maxsize=1)
         self.pause_mission: Queue[bool] = Queue(maxsize=1)
         self.task_status_request: Queue[str] = Queue(maxsize=1)
+        self.robot_status_request: Queue[bool] = Queue(maxsize=1)
 
 
 class RobotServiceEvents:
     def __init__(self) -> None:
         self.task_status_updated: Queue[TaskStatus] = Queue(maxsize=1)
         self.task_status_failed: Queue[ErrorMessage] = Queue(maxsize=1)
+        self.robot_status_updated: Queue[RobotStatus] = Queue(maxsize=1)
+        self.robot_status_failed: Queue[ErrorMessage] = Queue(maxsize=1)
         self.mission_started: Queue[bool] = Queue(maxsize=1)
         self.mission_failed: Queue[ErrorMessage] = Queue(maxsize=1)
         self.robot_status_changed: Queue[bool] = Queue(maxsize=1)

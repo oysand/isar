@@ -1,56 +1,80 @@
 import logging
 import time
 from threading import Event, Thread
+from typing import Optional
 
 from isar.config.settings import settings
-from isar.models.communication.queues.events import SharedState
-from isar.models.communication.queues.queue_utils import update_shared_state
-from robot_interface.models.exceptions.robot_exceptions import RobotException
+from isar.models.communication.queues.events import RobotServiceEvents
+from isar.models.communication.queues.queue_utils import (
+    trigger_event,
+    update_shared_state,
+)
+from robot_interface.models.exceptions.robot_exceptions import (
+    ErrorMessage,
+    RobotCommunicationException,
+    RobotCommunicationTimeoutException,
+    RobotException,
+)
 from robot_interface.robot_interface import RobotInterface
 
 
 class RobotStatusThread(Thread):
     def __init__(
         self,
+        robot_service_events: RobotServiceEvents,
         robot: RobotInterface,
         signal_thread_quitting: Event,
-        shared_state: SharedState,
     ):
         self.logger = logging.getLogger("robot")
-        self.shared_state: SharedState = shared_state
+        self.robot_service_events: RobotServiceEvents = robot_service_events
         self.robot: RobotInterface = robot
         self.signal_thread_quitting: Event = signal_thread_quitting
-        self.last_robot_status_poll_time: float = (
-            time.time() - settings.ROBOT_API_STATUS_POLL_INTERVAL
-        )
         Thread.__init__(self, name="Robot status thread")
 
     def stop(self) -> None:
         return
 
-    def _is_ready_to_poll_for_status(self) -> bool:
-        time_since_last_robot_status_poll = (
-            time.time() - self.last_robot_status_poll_time
-        )
-        return (
-            time_since_last_robot_status_poll > settings.ROBOT_API_STATUS_POLL_INTERVAL
-        )
-
     def run(self):
-        if self.signal_thread_quitting.is_set():
-            return
+        failed_robot_status_error: Optional[ErrorMessage] = None
+        request_status_failure_counter: int = 0
 
-        thread_check_interval = settings.THREAD_CHECK_INTERVAL
+        while (
+            request_status_failure_counter
+            < settings.REQUEST_STATUS_FAILURE_COUNTER_LIMIT
+        ):
+            if self.signal_thread_quitting.is_set():
+                return
 
-        while not self.signal_thread_quitting.wait(thread_check_interval):
-            if not self._is_ready_to_poll_for_status():
-                continue
             try:
-                self.last_robot_status_poll_time = time.time()
-
                 robot_status = self.robot.robot_status()
-                update_shared_state(self.shared_state.robot_status, robot_status)
-            except RobotException as e:
-                self.logger.error(f"Failed to retrieve robot status: {e}")
+                trigger_event(
+                    self.robot_service_events.robot_status_updated, robot_status
+                )
+                return
+            except (
+                RobotCommunicationTimeoutException,
+                RobotCommunicationException,
+            ) as e:
+                request_status_failure_counter += 1
+                self.logger.error(
+                    f"Failed to get robot status "
+                    f"{request_status_failure_counter} times because: "
+                    f"{e.error_description}"
+                )
+
+                failed_robot_status_error = ErrorMessage(
+                    error_reason=e.error_reason,
+                    error_description=e.error_description,
+                )
                 continue
-        self.logger.info("Exiting robot status thread")
+            except RobotException as e:
+                failed_robot_status_error = ErrorMessage(
+                    error_reason=e.error_reason,
+                    error_description=e.error_description,
+                )
+                break
+
+        trigger_event(
+            self.robot_service_events.robot_status_failed,
+            failed_robot_status_error,
+        )
