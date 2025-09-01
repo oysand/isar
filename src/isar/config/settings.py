@@ -79,7 +79,7 @@ class Settings(BaseSettings):
     ROBOT_HEARTBEAT_PUBLISH_INTERVAL: float = Field(default=1)
     ROBOT_INFO_PUBLISH_INTERVAL: float = Field(default=5)
     ROBOT_API_STATUS_POLL_INTERVAL: float = Field(default=5)
-    THREAD_CHECK_INTERVAL: float = Field(default=0.01)
+    ROBOT_API_BATTERY_POLL_INTERVAL: float = Field(default=5)
 
     # Determines the minimum battery level the robot must have to start a mission
     ROBOT_MISSION_BATTERY_START_THRESHOLD: float = Field(default=25.0)

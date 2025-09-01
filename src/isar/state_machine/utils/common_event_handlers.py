@@ -179,3 +179,45 @@ def _handle_new_task_status(
 
         return handle_task_completed(status)
     return None
+
+
+def robot_status_event_handler(
+    state_machine: "StateMachine",
+    event: Event[Optional[RobotStatus]],
+) -> Optional[Callable]:
+    status: Optional[RobotStatus] = event.consume_event()
+    if status is not None:
+        state_machine.awaiting_robot_status = False
+        return _handle_new_robot_status(state_machine, status)
+
+    elif not state_machine.awaiting_robot_status:
+        state_machine.events.state_machine_events.robot_status_request.trigger_event(
+            True
+        )
+        state_machine.awaiting_robot_status = True
+    return None
+
+
+def _handle_new_robot_status(
+    state_machine: "StateMachine",
+    status: RobotStatus,
+) -> Optional[Callable]:
+    if status == RobotStatus.Home:
+        if state_machine.is_home():
+            return None
+        return state_machine.robot_is_home  # type: ignore
+    elif status == RobotStatus.Available:
+        if state_machine.is_robot_standing_still():
+            return None
+        return state_machine.robot_is_standing_still  # type: ignore
+    elif status == RobotStatus.BlockedProtectiveStop:
+        if state_machine.is_blocked_protective_stop():
+            return None
+        return state_machine.robot_is_blocked_protective_stop  # type: ignore
+    elif status == RobotStatus.Offline:
+        if state_machine.is_offline():
+            return None
+        return state_machine.robot_is_offline  # type: ignore
+    else:
+        return state_machine.robot_status_unknown  # type: ignore
+    return None

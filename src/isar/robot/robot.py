@@ -9,6 +9,7 @@ from isar.models.events import (
     SharedState,
     StateMachineEvents,
 )
+from isar.robot.robot_battery import RobotBatteryThread
 from isar.robot.robot_start_mission import RobotStartMissionThread
 from isar.robot.robot_status import RobotStatusThread
 from isar.robot.robot_stop_mission import RobotStopMissionThread
@@ -29,12 +30,18 @@ class Robot(object):
         self.robot: RobotInterface = robot
         self.start_mission_thread: Optional[RobotStartMissionThread] = None
         self.robot_status_thread: Optional[RobotStatusThread] = None
+        self.robot_battery_thread: Optional[RobotBatteryThread] = None
         self.robot_task_status_thread: Optional[RobotTaskStatusThread] = None
         self.stop_mission_thread: Optional[RobotStopMissionThread] = None
         self.signal_thread_quitting: ThreadEvent = ThreadEvent()
 
     def stop(self) -> None:
         self.signal_thread_quitting.set()
+        if (
+            self.robot_battery_thread is not None
+            and self.robot_battery_thread.is_alive()
+        ):
+            self.robot_battery_thread.join()
         if self.robot_status_thread is not None and self.robot_status_thread.is_alive():
             self.robot_status_thread.join()
         if (
@@ -49,6 +56,7 @@ class Robot(object):
             self.start_mission_thread.join()
         if self.stop_mission_thread is not None and self.stop_mission_thread.is_alive():
             self.stop_mission_thread.join()
+        self.robot_battery_thread = None
         self.robot_status_thread = None
         self.robot_task_status_thread = None
         self.start_mission_thread = None
@@ -83,6 +91,15 @@ class Robot(object):
             )
             self.robot_task_status_thread.start()
 
+    def _robot_status_request_handler(self, event: Event[str]) -> None:
+        if event.consume_event():
+            self.robot_status_thread = RobotStatusThread(
+                self.robot_service_events,
+                self.robot,
+                self.signal_thread_quitting,
+            )
+            self.robot_status_thread.start()
+
     def _stop_mission_request_handler(self, event: Event[bool]) -> None:
         if event.consume_event():
             if (
@@ -112,16 +129,20 @@ class Robot(object):
             self.stop_mission_thread.start()
 
     def run(self) -> None:
-        self.robot_status_thread = RobotStatusThread(
+        self.robot_battery_thread = RobotBatteryThread(
             self.robot, self.signal_thread_quitting, self.shared_state
         )
-        self.robot_status_thread.start()
+        self.robot_battery_thread.start()
 
         while not self.signal_thread_quitting.wait(0):
             self._start_mission_event_handler(self.state_machine_events.start_mission)
 
             self._task_status_request_handler(
                 self.state_machine_events.task_status_request
+            )
+
+            self._robot_status_request_handler(
+                self.state_machine_events.robot_status_request
             )
 
             self._stop_mission_request_handler(self.state_machine_events.stop_mission)

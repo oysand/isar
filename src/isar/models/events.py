@@ -100,15 +100,17 @@ class StateMachineEvents:
         self.stop_mission: Event[bool] = Event()
         self.pause_mission: Event[bool] = Event()
         self.task_status_request: Event[str] = Event()
+        self.robot_status_request: Event[bool] = Event()
 
 
 class RobotServiceEvents:
     def __init__(self) -> None:
         self.task_status_updated: Event[TaskStatus] = Event()
         self.task_status_failed: Event[ErrorMessage] = Event()
+        self.robot_status_updated: Event[RobotStatus] = Event()
+        self.robot_status_failed: Event[ErrorMessage] = Event()
         self.mission_started: Event[bool] = Event()
         self.mission_failed: Event[ErrorMessage] = Event()
-        self.robot_status_changed: Event[bool] = Event()
         self.mission_failed_to_stop: Event[ErrorMessage] = Event()
         self.mission_successfully_stopped: Event[bool] = Event()
 

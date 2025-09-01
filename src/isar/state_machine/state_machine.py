@@ -149,6 +149,7 @@ class StateMachine(object):
         self.current_state: State = States(self.state)  # type: ignore
 
         self.awaiting_task_status: bool = False
+        self.awaiting_robot_status: bool = False
 
         self.transitions_log_length: int = transitions_log_length
         self.transitions_list: Deque[States] = deque([], self.transitions_log_length)
