@@ -44,17 +44,6 @@ def return_home_event_handler(
     return None
 
 
-def robot_status_event_handler(
-    state_machine: "StateMachine",
-    expected_status: RobotStatus,
-    event: Event[RobotStatus],
-) -> Optional[Callable]:
-    robot_status: RobotStatus = event.check()
-    if robot_status != expected_status:
-        return state_machine.robot_status_changed  # type: ignore
-    return None
-
-
 def stop_mission_event_handler(
     state_machine: "StateMachine", event: Event[str]
 ) -> Optional[Callable]:
@@ -181,6 +170,22 @@ def _handle_new_task_status(
     return None
 
 
+def robot_status_failed_event_handler(
+    state_machine: "StateMachine",
+    event: Event[Optional[ErrorMessage]],
+) -> Optional[Callable]:
+    robot_status_failure: Optional[ErrorMessage] = event.consume_event()
+
+    if robot_status_failure is None:
+        return None
+
+    state_machine.logger.error(
+        f"Robot status failed because: {robot_status_failure.error_description}"
+    )
+    state_machine.awaiting_robot_status = False
+    return state_machine.robot_status_unknown  # type: ignore
+
+
 def robot_status_event_handler(
     state_machine: "StateMachine",
     event: Event[Optional[RobotStatus]],
@@ -218,6 +223,5 @@ def _handle_new_robot_status(
         if state_machine.is_offline():
             return None
         return state_machine.robot_is_offline  # type: ignore
-    else:
-        return state_machine.robot_status_unknown  # type: ignore
-    return None
+
+    return state_machine.robot_status_unknown  # type: ignore

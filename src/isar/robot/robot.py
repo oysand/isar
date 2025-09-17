@@ -91,14 +91,29 @@ class Robot(object):
             )
             self.robot_task_status_thread.start()
 
-    def _robot_status_request_handler(self, event: Event[str]) -> None:
-        if event.consume_event():
+    def _robot_status_request_handler(
+        self, request_event: Event[str], cancel_event: Event[str]
+    ) -> None:
+        if request_event.consume_event():
             self.robot_status_thread = RobotStatusThread(
                 self.robot_service_events,
                 self.robot,
                 self.signal_thread_quitting,
             )
             self.robot_status_thread.start()
+
+        if cancel_event.consume_event():
+            if (
+                self.robot_status_thread is not None
+                and self.robot_status_thread.is_alive()
+            ):
+                # kill the thread
+                self.robot_status_thread.join()
+                self.robot_service_events.robot_status_updated.clear_event()
+                self.robot_service_events.robot_status_failed.clear_event()
+                self.state_machine_events.robot_status_request.clear_event()
+
+            self.robot_status_thread = None
 
     def _stop_mission_request_handler(self, event: Event[bool]) -> None:
         if event.consume_event():

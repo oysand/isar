@@ -18,6 +18,7 @@ class EventHandlerMapping(Generic[T]):
     name: str
     event: Event[T]
     handler: Callable[[Event[T]], Optional[Callable]]
+    should_clean_up_event: bool = False
 
 
 @dataclass
@@ -53,9 +54,13 @@ class EventHandlerBase(State):
 
     def start(self) -> None:
         self.state_machine.update_state()
+        # if set to clear, clear event self.event.empty
         self._run()
 
     def stop(self) -> None:
+        for event_handler in self.event_handler_mappings:
+            if event_handler.should_clean_up_event:
+                event_handler.event.empty()
         return
 
     def get_event_handler_by_name(

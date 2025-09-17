@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, List
 
 from isar.eventhandlers.eventhandler import EventHandlerBase, EventHandlerMapping
 from isar.models.events import Event
+from isar.state_machine.utils.common_event_handlers import robot_status_event_handler
 from robot_interface.models.mission.status import RobotStatus
 
 if TYPE_CHECKING:
@@ -11,20 +12,13 @@ if TYPE_CHECKING:
 class Offline(EventHandlerBase):
 
     def __init__(self, state_machine: "StateMachine"):
-
-        shared_state = state_machine.shared_state
-
-        def _robot_status_event_handler(event: Event[RobotStatus]):
-            robot_status: RobotStatus = event.check()
-            if robot_status != RobotStatus.Offline:
-                return state_machine.robot_status_changed  # type: ignore
-            return None
+        events = state_machine.events
 
         event_handlers: List[EventHandlerMapping] = [
             EventHandlerMapping(
                 name="robot_status_event",
-                event=shared_state.robot_status,
-                handler=_robot_status_event_handler,
+                event=events.robot_service_events.robot_status_updated,
+                handler=lambda event: robot_status_event_handler(state_machine, event),
             ),
         ]
         super().__init__(

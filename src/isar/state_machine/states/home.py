@@ -17,7 +17,6 @@ class Home(EventHandlerBase):
 
     def __init__(self, state_machine: "StateMachine"):
         events = state_machine.events
-        shared_state = state_machine.shared_state
 
         event_handlers: List[EventHandlerMapping] = [
             EventHandlerMapping(
@@ -39,10 +38,8 @@ class Home(EventHandlerBase):
             ),
             EventHandlerMapping(
                 name="robot_status_event",
-                event=shared_state.robot_status,
-                handler=lambda event: robot_status_event_handler(
-                    state_machine, RobotStatus.Home, event
-                ),
+                event=events.robot_service_events.robot_status_updated,
+                handler=lambda event: robot_status_event_handler(state_machine, event),
             ),
         ]
         super().__init__(

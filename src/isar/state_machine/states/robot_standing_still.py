@@ -17,7 +17,6 @@ class RobotStandingStill(EventHandlerBase):
 
     def __init__(self, state_machine: "StateMachine"):
         events = state_machine.events
-        shared_state = state_machine.shared_state
 
         event_handlers: List[EventHandlerMapping] = [
             EventHandlerMapping(
@@ -34,15 +33,13 @@ class RobotStandingStill(EventHandlerBase):
             ),
             EventHandlerMapping(
                 name="stop_mission_event",
-                event=events.api_requests.return_home.request,
+                event=events.api_requests.stop_mission.request,
                 handler=lambda event: stop_mission_event_handler(state_machine, event),
             ),
             EventHandlerMapping(
                 name="robot_status_event",
-                event=shared_state.robot_status,
-                handler=lambda event: robot_status_event_handler(
-                    state_machine, RobotStatus.Available, event
-                ),
+                event=events.robot_service_events.robot_status_updated,
+                handler=lambda event: robot_status_event_handler(state_machine, event),
             ),
         ]
         super().__init__(

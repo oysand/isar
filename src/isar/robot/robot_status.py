@@ -54,7 +54,7 @@ class RobotStatusThread(Thread):
             ) as e:
                 request_status_failure_counter += 1
                 self.logger.error(
-                    f"Failed to get task status "
+                    f"Failed to get robot status "
                     f"{request_status_failure_counter} times because: "
                     f"{e.error_description}"
                 )
@@ -65,6 +65,9 @@ class RobotStatusThread(Thread):
                 )
                 continue
             except RobotException as e:
+                self.logger.error(
+                    f"Failed to get robot status because: {e.error_description}"
+                )
                 failed_status_error = ErrorMessage(
                     error_reason=e.error_reason,
                     error_description=e.error_description,

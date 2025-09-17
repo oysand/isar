@@ -101,6 +101,15 @@ class StateMachineEvents:
         self.pause_mission: Event[bool] = Event()
         self.task_status_request: Event[str] = Event()
         self.robot_status_request: Event[bool] = Event()
+        self.robot_status_cancel: Event[bool] = Event()
+
+
+# RobotStatusEvent
+# RequestSomethingFromRobotService
+#     request
+#     update
+#     failure
+#     cancel
 
 
 class RobotServiceEvents:
